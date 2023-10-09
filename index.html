@@ -30,9 +30,19 @@
         const outputCode = document.querySelector('#outputCode')
         const resContainer = document.querySelector('.results')
 
+        const toBitRep = n => {
+            let a = [];
+            for (i = 0; i < 8; i++) {
+                let b = ((n & 1<<(7-i)) != 0) ? 1 : 0;
+                a.push(b);
+            }
+            return `0b${a.join('')}`;
+        }
+
         async function createResult(file) {
             console.log(`creating result for ${file.name}`)
             const p = new Promise((resolve, reject) => {
+
                 const row = document.createElement('div')
                 row.classList.add('row')
 
@@ -43,9 +53,10 @@
                 row.classList.add('col')
 
                 const canvas = document.createElement('canvas')
-                canvas.width = "128px"
-                canvas.height = "64px"
-                const txt = document.createElement('textarea')
+                canvas.width = 128
+                canvas.height = 64
+                const txt = document.createElement('pre')
+                let outputText = ''
                 canvasCol.appendChild(canvas)
                 txtCol.appendChild(txt)
                 row.appendChild(canvasCol)
@@ -59,24 +70,51 @@
                     const img = new Image()
                     img.src = data
                     img.addEventListener('load', function (ev) {
-                        // canvas.width = img.width
-                        // canvas.height = img.height
-                        // if (img.width !== 128 || img.height !== 64) {
-                        //     console.error(`image ${file.name} size different from 128 x 64`)
-                        //     reject({ error: true })
-                        // }
+                        canvas.width = img.width
+                        canvas.height = img.height
+                        if (img.width % 8 != 0) {
+                            console.error(`image ${file.name} width must be multiple of 8`)
+                            return reject({ error: true })
+                        }
                         ctx.drawImage(img, 0, 0)
                         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                         const pixels = imgData.data;
                         let outPixels = []
+                        let bitCounter = 0;
+                        let thisByte = 0;
                         for (let i = 0; i < pixels.length; i += 4) {
-                            const red = pixels[i];
-                            const green = pixels[i + 1];
-                            const blue = pixels[i + 2];
-                            const greyScale = (red + green + blue) / (765)
-                            outPixels.push(greyScale)
+                            let mask = 1<<(7-bitCounter);
+                            console.log(pixels[i], pixels[i+1], pixels[i+2], pixels[i+3])
+                            if (pixels[i] + pixels[i+1] + pixels[i+2] == 0 && pixels[i+3] > 0) {
+                                // this is a black pixel that is not transparent. treat it as "on"
+                                thisByte |= mask;
+                            }
+                            else {
+                                // this is any other pixel. treat it as "off"
+                                thisByte &= ~mask;
+                            }
+                            if (bitCounter == 7) {
+                                bitCounter = 0;
+                                outPixels.push(thisByte);
+                                thisByte = 0;
+                            }
+                            else {
+                                bitCounter++;
+                            }
                         }
-                        txt.innerText = `uint8_t img[] = {${outPixels.join(', ')}};`
+                        outPixels = outPixels.map(e => toBitRep(e));
+                        outputText = 'uint8_t img[] = {'
+                        for (let i = 0; i < outPixels.length; i++) {
+                            if (i % (img.width / 8) == 0) {
+                                outputText += '\n\t';
+                            }
+                            outputText += outPixels[i];
+                            if (i != outPixels.length - 1) {
+                                outputText += ', '
+                            }
+                        }
+                        outputText += '\n};'
+                        txt.innerText = outputText;
                     })
                 })
                 reader.readAsDataURL(file)
