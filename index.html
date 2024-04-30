@@ -20,7 +20,7 @@
             </div>
             <div class="col">
                 <input type="file" name="up" id="upload" multiple>
-                <button type="button" class="btn btn-primary">Download Code</button>
+                <button type="button" id="dl" class="btn btn-primary" hidden>Download Code</button>
             </div>
         </div>
         <div class="results"></div>
@@ -30,6 +30,7 @@
         const upload = document.querySelector('#upload')
         const outputCode = document.querySelector('#outputCode')
         const resContainer = document.querySelector('.results')
+        const dlBtn = document.querySelector('#dl')
 
         const toBitRep = n => {
             let a = [];
@@ -48,10 +49,10 @@
                 row.classList.add('row')
 
                 const canvasCol = document.createElement('div')
-                row.classList.add('col')
+                canvasCol.classList.add('col')
 
                 const txtCol = document.createElement('div')
-                row.classList.add('col')
+                txtCol.classList.add('col')
 
                 const canvas = document.createElement('canvas')
                 canvas.width = 128
@@ -61,7 +62,7 @@
                 canvasCol.appendChild(canvas)
                 txtCol.appendChild(txt)
                 row.appendChild(canvasCol)
-                row.appendChild(txt)
+                row.appendChild(txtCol)
 
                 const ctx = canvas.getContext('2d')
 
@@ -103,7 +104,8 @@
                             }
                         }
                         outPixels = outPixels.map(e => toBitRep(e));
-                        outputText = 'uint8_t img[] = {'
+                        outputText = `uint8_t img[] = { // ${file.name}`
+                        // outputText += 'uint8_t img[] = {'
                         for (let i = 0; i < outPixels.length; i++) {
                             if (i % (img.width / 8) == 0) {
                                 outputText += '\n\t';
@@ -125,6 +127,25 @@
             return p
         }
 
+        const downloadFile = (txt) => {
+            const link = document.createElement("a");
+            const file = new Blob([txt], { type: 'text/plain' });
+            link.href = URL.createObjectURL(file);
+            link.download = "code.c";
+            link.click();
+            URL.revokeObjectURL(link.href);
+        };
+
+        dlBtn.addEventListener('click', function (ev) {
+            let tmp = ''
+            let pres = document.querySelectorAll('pre')
+            for (let pre of pres) {
+                tmp += pre.innerText
+                tmp += '\n'
+            }
+            downloadFile(tmp)
+        })
+
         upload.addEventListener('change', async function (ev) {
             let promises = []
             console.log(this.files)
@@ -139,6 +160,7 @@
                 }
                 else resContainer.appendChild(res)
             }
+            dlBtn.attributes.removeNamedItem('hidden')
         })
     </script>
 
