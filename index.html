@@ -20,6 +20,7 @@
             </div>
             <div class="col">
                 <input type="file" name="up" id="upload" multiple>
+                <button type="button" class="btn btn-primary">Download Code</button>
             </div>
         </div>
         <div class="results"></div>
@@ -33,7 +34,7 @@
         const toBitRep = n => {
             let a = [];
             for (i = 0; i < 8; i++) {
-                let b = ((n & 1<<(7-i)) != 0) ? 1 : 0;
+                let b = ((n & 1 << (7 - i)) != 0) ? 1 : 0;
                 a.push(b);
             }
             return `0b${a.join('')}`;
@@ -83,9 +84,8 @@
                         let bitCounter = 0;
                         let thisByte = 0;
                         for (let i = 0; i < pixels.length; i += 4) {
-                            let mask = 1<<(7-bitCounter);
-                            console.log(pixels[i], pixels[i+1], pixels[i+2], pixels[i+3])
-                            if (pixels[i] + pixels[i+1] + pixels[i+2] == 0 && pixels[i+3] > 0) {
+                            let mask = 1 << (7 - bitCounter);
+                            if (pixels[i] + pixels[i + 1] + pixels[i + 2] < 60 && pixels[i + 3] > 0) {
                                 // this is a black pixel that is not transparent. treat it as "on"
                                 thisByte |= mask;
                             }
@@ -133,7 +133,10 @@
             }
             let results = await Promise.all(promises)
             for (let res of results) {
-                if (res?.error) continue
+                if (res?.error) {
+                    console.error(res.error)
+                    continue
+                }
                 else resContainer.appendChild(res)
             }
         })
